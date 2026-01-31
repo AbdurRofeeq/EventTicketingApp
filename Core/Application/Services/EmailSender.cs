@@ -9,15 +9,37 @@ using EventTicketingApp.Models.AttendeeModel;
 
 public class EmailSender : IMailServices
 {
-    private readonly string smtpServer = "smtp.gmail.com";
-    private readonly int smtpPort = 465;
-    string username = "ayoolalawal00@gmail.com";
-    string password = "hvbu mvpq ptml zltk";
-    string senderEmail = "ayooolalawal00@gmail.com";
+    private readonly string _smtpHost;
+    private readonly int _smtpPort;
+    private readonly string _smtpUser;
+    private readonly string _smtpPass;
+    private readonly string _fromEmail;
+    private readonly string _fromName;
+    private readonly bool _enableSsl;
+
+    public EmailSender(IConfiguration configuration)
+    {
+        _smtpHost = configuration["Smtp:Host"]
+            ?? throw new InvalidOperationException("SMTP Host is not configured.");
+
+        _smtpPort = configuration.GetValue<int>("Smtp:Port", 587);
+        _smtpUser = configuration["Smtp:Username"]
+            ?? throw new InvalidOperationException("SMTP Username is not configured.");
+
+        _smtpPass = configuration["Smtp:Password"]
+            ?? throw new InvalidOperationException("SMTP Password is not configured.");
+
+        _fromEmail = configuration["Smtp:FromEmail"]
+            ?? throw new InvalidOperationException("FromEmail is not configured.");
+
+        _fromName = configuration["Smtp:FromName"] ?? "EventTicket";
+        _enableSsl = configuration.GetValue<bool>("Smtp:EnableSsl", true);
+    }
+
     public void SendEMail(EmailDto mailRequest)
     {
         MimeMessage message = new MimeMessage();
-        message.From.Add(new MailboxAddress("EventTicket", senderEmail));
+        message.From.Add(new MailboxAddress("EventTicket", _fromEmail));
         message.To.Add(MailboxAddress.Parse(mailRequest.ToEmail));
         message.Subject = mailRequest.Subject;
 
@@ -30,8 +52,8 @@ public class EmailSender : IMailServices
         SmtpClient client = new SmtpClient();
         try
         {
-            client.Connect(smtpServer, smtpPort, true);
-            client.Authenticate(username, password);
+            client.Connect(_smtpHost, _smtpPort, true);
+            client.Authenticate(_smtpUser, _smtpPass);
             client.Send(message);
         }
         catch(Exception ex)
@@ -48,7 +70,7 @@ public class EmailSender : IMailServices
     public void QRCodeEMail(EmailDto mailRequest, string qrCodeImagePath)
     {
         var message = new MimeMessage();
-        message.From.Add(new MailboxAddress("EventTicket", senderEmail));
+        message.From.Add(new MailboxAddress("EventTicket", _fromEmail));
         message.To.Add(MailboxAddress.Parse(mailRequest.ToEmail));
         message.Subject = mailRequest.Subject;
 
@@ -62,13 +84,10 @@ public class EmailSender : IMailServices
 
         using (var client = new SmtpClient())
         {
-            client.Connect(smtpServer, smtpPort, true);
-            client.Authenticate(username, password);
+            client.Connect(_smtpHost, _smtpPort, true);
+            client.Authenticate(_smtpUser, _smtpPass);
             client.Send(message);
             client.Disconnect(true);
         }
     }
-
-  
-
 }
